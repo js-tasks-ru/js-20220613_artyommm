@@ -1,15 +1,16 @@
 export default class ColumnChart {
-  constructor(object = { data: [],
-    label: '',
-    value: 0,
-    link: '',
-    formatHeading: (data) => data}) { //не знаю что тут с функцией придумать даже
-    this.data = object.data;
-    this.label = object.label;
-    this.value = object.value;
-    this.link = object.link;
-    this.formatHeading = object.formatHeading; //function
-    this.chartHeight = 50;
+  constructor({data = [],
+    label = '',
+    value = 0,
+    link = '',
+    chartHeight = 50,
+    formatHeading =  (data) => data} = {}) { //не знаю что тут с функцией придумать даже
+    this.data = data;
+    this.label = label;
+    this.value = value;
+    this.link = link;
+    this.formatHeading = formatHeading; //function
+    this.chartHeight = chartHeight;
     this.render();
   }
 
@@ -34,7 +35,7 @@ export default class ColumnChart {
     const link = this.link ? `<a href="${this.link}" class="column-chart__link">View all</a>` : '';
     const value = this.formatHeading ? this.formatHeading(this.value) : this.value;
 
-    let columnsHtml = this.data ? this.fillData(this.data) : '';
+    let columnsHtml = this.data.length ? this.fillData(this.data) : '';
 
     return `
     <div class="column-chart ${isEmptyCard}" style="--chart-height: 50">
