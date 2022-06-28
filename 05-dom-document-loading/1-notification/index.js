@@ -1,5 +1,6 @@
 export default class NotificationMessage {
   static notificationMessageRef = null;
+  timerId = null; //храним идентификатор таймера
 
   constructor(text = '', {
     duration = 1,
@@ -9,10 +10,13 @@ export default class NotificationMessage {
     this.duration = duration;
     this.type = type;
 
-    this.render();
     if (NotificationMessage.notificationMessageRef) { //если уже есть уведомление, затираем ссылку на его
       NotificationMessage.notificationMessageRef.remove();
     }
+
+    this.render();
+
+
     NotificationMessage.notificationMessageRef = this;
   }
 
@@ -39,8 +43,9 @@ export default class NotificationMessage {
   }
 
   remove() {
-    this.element.remove();
     NotificationMessage.notificationMessageRef = null;
+    clearTimeout(this.timerId);
+    this.element.remove();
   }
 
   destroy() {
@@ -54,7 +59,6 @@ export default class NotificationMessage {
       containerForMessage.append(this.element); //помещение нашего message в какой-то элемент на странице?
     }
 
-    setTimeout(() => this.remove(), this.duration);
+    this.timerId = setTimeout(() => this.remove(), this.duration);
   }
-
 }
