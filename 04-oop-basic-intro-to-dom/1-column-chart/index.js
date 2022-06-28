@@ -1,44 +1,45 @@
 export default class ColumnChart {
-  constructor({data = [],
+  subElements = {};
+  chartHeight = 50;
+
+  constructor({
+    data = [],
     label = '',
     value = 0,
     link = '',
-    chartHeight = 50,
-    formatHeading =  (data) => data} = {}) { //не знаю что тут с функцией придумать даже
+    formatHeading = (data) => data
+  } = {}) {
     this.data = data;
     this.label = label;
-    this.value = value;
+    this.value = formatHeading(value);
     this.link = link;
-    this.formatHeading = formatHeading; //function
-    this.chartHeight = chartHeight;
     this.render();
   }
 
-  fillData(data) { //функция для генерации html кода для колонок chart-а
+  getChartBody(data) { //функция для генерации html кода для колонок chart-а
     const maxValue = Math.max(...data);
     const maxColumnHeight = this.chartHeight;
     const scale = maxColumnHeight / maxValue;
-    let columnsHtml = '';
+    let columnsHtml;
 
-    for (const value of data) {
+    columnsHtml = data.map(value => {
       let chartValue = Math.floor(value * scale);
       let percentage = ((value / maxValue) * 100).toFixed(0);
-      columnsHtml += `<div style="--value: ${chartValue}" data-tooltip="${percentage}%"></div>`;
-    }
+      return `<div style="--value: ${chartValue}" data-tooltip="${percentage}%"></div>`;
+    }).join('');
 
     return columnsHtml;
   }
 
   getTemplate() {
-    const isEmptyCard = !this.data.length ? 'column-chart_loading' : '';
     const label = this.label;
     const link = this.link ? `<a href="${this.link}" class="column-chart__link">View all</a>` : '';
-    const value = this.formatHeading ? this.formatHeading(this.value) : this.value;
+    const value = this.value;
 
-    let columnsHtml = this.data.length ? this.fillData(this.data) : '';
+    let columnsHtml = this.data.length ? this.getChartBody(this.data) : '';
 
     return `
-    <div class="column-chart ${isEmptyCard}" style="--chart-height: 50">
+    <div class="column-chart column-chart_loading" style="--chart-height: 50">
       <div class="column-chart__title">
         ${label}
         ${link}
@@ -54,11 +55,32 @@ export default class ColumnChart {
   }
 
   render() {
-    const element = document.createElement('div');
+    const wrapper = document.createElement('div');
 
-    element.innerHTML = this.getTemplate();
+    wrapper.innerHTML = this.getTemplate();
 
-    this.element = element.firstElementChild;
+    this.element = wrapper.firstElementChild;
+
+    if (this.data.length) {
+      if (this.element.classList.contains('column-chart_loading')) {
+        this.element.classList.remove('column-chart_loading');
+      }
+    }
+
+    this.subElements = this.getSubElements();
+  }
+
+  getSubElements() {
+    const result = {};
+    const elements = this.element.querySelectorAll('[data-element]');
+
+    for (const subElement of elements) {
+      const name = subElement.dataset.element;
+
+      result[name] = subElement;
+    }
+
+    return result;
   }
 
   remove() {
@@ -70,17 +92,22 @@ export default class ColumnChart {
   }
 
   update(data) {
-    const chartContainer = this.element.querySelector('.column-chart__chart');
+
+    this.data = data;
+
+    const chartContainer = this.subElements.body;
+    chartContainer.innerHTML = this.getChartBody(data);
+
     const dashboardElement = chartContainer.parentNode.parentNode; //нужно проверить у dashboard класслист
 
     if (data.length) {
       if (dashboardElement.classList.contains('column-chart_loading')) {
         dashboardElement.classList.remove('column-chart_loading');
       }
-      chartContainer.innerHTML = this.fillData(data);
+      this.subElements.body.innerHTML = this.getChartBody(data);
     } else {
       dashboardElement.classList.add('column-chart_loading');
-      chartContainer.innerHTML = '';
+      this.subElements.body.innerHTML = '';
     }
   }
 }
