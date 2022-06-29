@@ -69,8 +69,6 @@ export default class SortableTable {
     this.element = wrapper.firstElementChild;
 
     this.subElements = this.getSubElements();
-
-    console.log(this.element.querySelectorAll('.sortable-table__cell[data-id]'));
   }
 
   updateTableBody() {
