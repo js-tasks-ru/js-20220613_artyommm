@@ -49,7 +49,7 @@ export default class SortableTable {
     return result;
   }
 
-  getTable() {
+  getTemplate() {
     const tableHeader = this.getTableHeader();
     const tableBody = this.getTableBody();
 
@@ -64,7 +64,7 @@ export default class SortableTable {
   render() {
     const wrapper = document.createElement('div');
 
-    wrapper.innerHTML = this.getTable();
+    wrapper.innerHTML = this.getTemplate();
 
     this.element = wrapper.firstElementChild;
 
