@@ -4,15 +4,13 @@ export default class SortableTable {
   constructor(headerConfig = [], data = []) {
     this.headerConfig = headerConfig;
     this.data = data;
-    this.headerDict = headerConfig.map(item => item.id); //get headers
-    //console.log(this.headerDict);
     this.render();
   }
 
   getTableHeader() {
     const tableHeader = this.headerConfig.map(item => {
       return `
-      <div class="sortable-table__cell" data-id=${item.id} data-sortable=${item.sortable} data-order="asc">
+      <div class="sortable-table__cell" data-id=${item.id} data-sortable=${item.sortable}>
         <span>${item.title}</span>
       </div>
       `;
@@ -71,6 +69,8 @@ export default class SortableTable {
     this.element = wrapper.firstElementChild;
 
     this.subElements = this.getSubElements();
+
+    console.log(this.element.querySelectorAll('.sortable-table__cell[data-id]'));
   }
 
   updateTableBody() {
@@ -80,33 +80,36 @@ export default class SortableTable {
 
   sort(fieldValue, orderValue) {
     const locales = 'ru-en';
-    const direction = orderValue === 'asc' ? 1 : -1;
+    let direction = null;
+    if (orderValue === 'asc') {
+      direction = 1;
+    } else if (orderValue === 'desc') {
+      direction = -1;
+    }
 
-    let sortType = null;
+
+    let sortType = null; //ищем sortType в хедере
     for (const header of this.headerConfig) {
       if (header.id === fieldValue) {
-        if(!header.sortable) return;
         sortType = header.sortType;
       }
     }
 
-    if(!sortType) return;
-
     switch (sortType) {
-    case 'number':
-      this.data = [...this.data].sort((a, b) => direction * (a[fieldValue] - b[fieldValue]));
-      break;
+      case 'number':
+        this.data = [...this.data].sort((a, b) => direction * (a[fieldValue] - b[fieldValue]));
+        break;
 
-    case 'string':
-      this.data = [...this.data].sort((a, b) => {
-        return direction * a[fieldValue].localeCompare(b[fieldValue], locales, {caseFirst: 'upper'});
-      });
-      break;
+      case 'string':
+        this.data = [...this.data].sort((a, b) => {
+          return direction * a[fieldValue].localeCompare(b[fieldValue], locales, {caseFirst: 'upper'});
+        });
+        break;
 
-    default:
-      return;
+      default:
+        return;
     }
-    this.updateTableBody();
+    this.updateTableBody(); //перерендерим только тело таблицы
   }
 
   remove() {
@@ -116,7 +119,5 @@ export default class SortableTable {
   destroy() {
     this.remove();
   }
-
-
 }
 
