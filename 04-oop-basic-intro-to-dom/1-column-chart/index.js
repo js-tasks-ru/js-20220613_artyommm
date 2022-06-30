@@ -20,9 +20,8 @@ export default class ColumnChart {
     const maxValue = Math.max(...data);
     const maxColumnHeight = this.chartHeight;
     const scale = maxColumnHeight / maxValue;
-    let columnsHtml;
 
-    columnsHtml = data.map(value => {
+    const columnsHtml = data.map(value => {
       let chartValue = Math.floor(value * scale);
       let percentage = ((value / maxValue) * 100).toFixed(0);
       return `<div style="--value: ${chartValue}" data-tooltip="${percentage}%"></div>`;
@@ -36,7 +35,7 @@ export default class ColumnChart {
     const link = this.link ? `<a href="${this.link}" class="column-chart__link">View all</a>` : '';
     const value = this.value;
 
-    let columnsHtml = this.data.length ? this.getChartBody(this.data) : '';
+    const columnsHtml = this.data.length ? this.getChartBody(this.data) : '';
 
     return `
     <div class="column-chart column-chart_loading" style="--chart-height: 50">
