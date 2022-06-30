@@ -3,7 +3,7 @@ export default class NotificationMessage {
   timerId = null; //храним идентификатор таймера
 
   constructor(text = '', {
-    duration = 1,
+    duration = 0,
     type = ''
   } = {}) {
     this.text = text;
@@ -15,7 +15,6 @@ export default class NotificationMessage {
     }
 
     this.render();
-
 
     NotificationMessage.notificationMessageRef = this;
   }
@@ -52,11 +51,11 @@ export default class NotificationMessage {
     this.remove();
   }
 
-  show(containerForMessage) {
+  show(containerForNotification) {
     document.body.append(this.element);
 
-    if (containerForMessage) { // сначала долго не мог понять зачем это нужно
-      containerForMessage.append(this.element); //помещение нашего message в какой-то элемент на странице?
+    if (containerForNotification) {
+      containerForNotification.append(this.element);
     }
 
     this.timerId = setTimeout(() => this.remove(), this.duration);
