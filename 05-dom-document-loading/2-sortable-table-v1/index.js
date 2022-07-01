@@ -12,6 +12,9 @@ export default class SortableTable {
       return `
       <div class="sortable-table__cell" data-id=${item.id} data-sortable=${item.sortable}>
         <span>${item.title}</span>
+        <span data-element="arrow" class="sortable-table__sort-arrow">
+          <span class="sort-arrow"></span>
+        </span>
       </div>
       `;
     }).join('');
@@ -84,6 +87,16 @@ export default class SortableTable {
     } else if (orderValue === 'desc') {
       direction = -1;
     }
+
+    const allColumns = this.element.querySelectorAll('.sortable-table__cell[data-id]');
+    const currentColumn = this.element.querySelector(`.sortable-table__cell[data-id="${fieldValue}"]`);
+
+    // NOTE: Remove sorting arrow from other columns
+    allColumns.forEach(column => {
+      column.dataset.order = '';
+    });
+
+    currentColumn.dataset.order = orderValue;
 
 
     let sortType = null; //ищем sortType в хедере
