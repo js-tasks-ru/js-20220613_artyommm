@@ -90,6 +90,9 @@ export default class SortableTable {
           if (this.sorted.id === id && this.sorted.order === 'asc') {
             this.sort(id, 'desc');
             this.sorted.order = 'desc';
+          } else if (this.sorted.id === id) {
+            this.sort(id, 'asc');
+            this.sorted.order = 'asc';
           } else {
             this.sorted.id = id;
             this.sorted.order = 'desc';
