@@ -11,7 +11,7 @@ export default class ColumnChart {
                 range = {},
                 data = [],
                 label = '',
-                value = 0,
+                value = data.reduce((sum, current) => sum + current, 0),
                 link = '',
                 formatHeading = (data) => data
               } = {}) {
@@ -21,6 +21,7 @@ export default class ColumnChart {
     this.label = label;
     this.value = formatHeading(value);
     this.link = link;
+    this.formatHeading = formatHeading;
     this.render();
     this.update(range.from, range.to)
   }
@@ -31,8 +32,8 @@ export default class ColumnChart {
     const scale = maxColumnHeight / maxValue;
 
     const columnsHtml = data.map(value => {
-      let chartValue = Math.floor(value * scale);
-      let percentage = ((value / maxValue) * 100).toFixed(0);
+      const chartValue = Math.floor(value * scale);
+      const percentage = ((value / maxValue) * 100).toFixed(0);
       return `<div style="--value: ${chartValue}" data-tooltip="${percentage}%"></div>`;
     }).join('');
 
@@ -70,9 +71,7 @@ export default class ColumnChart {
     this.element = wrapper.firstElementChild;
 
     if (this.data.length) {
-      if (this.element.classList.contains('column-chart_loading')) {
-        this.element.classList.remove('column-chart_loading');
-      }
+      this.element.classList.remove('column-chart_loading');
     }
 
     this.subElements = this.getSubElements();
@@ -99,7 +98,10 @@ export default class ColumnChart {
     this.remove();
   }
 
-  rerender() {
+  changeData() {
+    const headerContainer = this.subElements.header; //меняем значение в header-е columnChart-а
+    headerContainer.innerHTML = this.formatHeading(this.value);
+
     const chartContainer = this.subElements.body;
     chartContainer.innerHTML = this.getChartBody(this.data);
 
@@ -117,13 +119,17 @@ export default class ColumnChart {
   }
 
   update(startDate, endDate) {
-    const params = {'from': startDate, 'to': endDate}; //`?from=${startDate}&to=${endDate}`;
-    const url = [BACKEND_URL, '/', this.url, '?', `from=${params.from}`, '&', `?to=${params.to}`].join('');
+    const params = {'from': startDate, 'to': endDate};
+    const url = new URL(this.url, BACKEND_URL);
+    url.searchParams.set('from', params.from);
+    url.searchParams.set('to', params.to);
 
     return fetchJson(url, params)
       .then(json => {
         this.data = Object.values(json);
-        this.rerender();
+        this.value = this.data.reduce((sum, current) => sum + current, 0);
+        this.changeData();
+        return json;
       });
   }
 }
