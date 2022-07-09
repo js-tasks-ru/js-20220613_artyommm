@@ -10,20 +10,23 @@ export default class SortableTable {
 
   constructor(headersConfig, {
     data = [],
-    sorted = {}
+    sorted = {
+      id: headersConfig.find(item => item.sortable).id,
+      order: 'asc'
+    },
+    isSortLocally = false,
   } = {}) {
     this.headerConfig = headersConfig;
     this.data = data;
     this.sorted = sorted;
+    this.isSortLocally = isSortLocally;
 
     this.render();
-    this.update();
-
-    this.initEventListeners();
   }
 
   initEventListeners() {
     window.addEventListener('scroll', this.addProducts);
+    this.subElements.header.addEventListener('pointerdown', this.onSortClick);
   }
 
   getTableHeader() {
@@ -52,7 +55,6 @@ export default class SortableTable {
   }
 
   getTableBody(data) {
-    //const tableBody = this.data.map(item => {
     const tableBody = data.map(item => {
       const tableRow = this.getTableRow(item);
       return `<a href="" class="sortable-table__row">${tableRow}</a>`;
@@ -84,26 +86,26 @@ export default class SortableTable {
     `;
   }
 
-  sortOnClick = event => {
-    console.log('sortOnClick');
-    const id = event.target.dataset.id;
-    const sortable = event.target.dataset.sortable;
+  onSortClick = event => {
+    const header = event.target.closest('[data-sortable="true"]');
+    const {id, sortable} = header.dataset;
+    const sortFunc = (id, order) => this.isSortLocally ? this.sortOnClient(id, order) : this.sortOnServer(id, order);
     if (sortable === 'true'){
       if (this.sorted.id === id && this.sorted.order === 'asc') {
-        this.sortOnClient(id, 'desc');
+        sortFunc(id, 'desc');
         this.sorted.order = 'desc';
       } else if (this.sorted.id === id) {
-        this.sortOnClient(id, 'asc');
+        sortFunc(id, 'asc');
         this.sorted.order = 'asc';
       } else {
         this.sorted.id = id;
         this.sorted.order = 'desc';
-        this.sortOnClient(this.sorted.id, this.sorted.order);
+        sortFunc(this.sorted.id, this.sorted.order);
       }
     }
   }
 
-  render() {
+  async render() {
     const wrapper = document.createElement('div');
 
     wrapper.innerHTML = this.getTemplate();
@@ -112,22 +114,28 @@ export default class SortableTable {
 
     this.subElements = this.getSubElements();
 
-    if (this.sorted.id && this.sorted.order) {
-      this.sortOnClient(this.sorted.id, this.sorted.order);
-    }
 
-    this.subElements.header.addEventListener('pointerdown', this.sortOnClick);
+    //эту логику я вынес из функции update() и тест "should render loaded data correctly" прошёл
+    const {id, order} = this.sorted;
+    const data = await this.getProducts(id, order, this.start, this.start+this.productsCountStep);
+    this.data = data;
+    this.subElements.body.innerHTML = this.getTableBody(data);
+    this.start += this.productsCountStep;
+    //можно закомментировать кусок 121-125 и раскомментировать 128
+
+    //this.update(); //-> тест валится, но работает всё аналогично
+
+    this.initEventListeners();
   }
 
-  async getProducts(start, end) {
+  async getProducts(id, order, start = this.start, end = this.start+this.productsCountStep) {
     const url = new URL('/api/rest/products', 'https://course-js.javascript.ru');
     url.searchParams.set('_embed', 'subcategory.category');
-    url.searchParams.set('_sort', 'title');
-    url.searchParams.set('_order', 'asc');
+    url.searchParams.set('_sort', id);
+    url.searchParams.set('_order', order);
     url.searchParams.set('_start', start);
     url.searchParams.set('_end', end);
     const data = await fetchJson(url);
-    //console.log(start, end, data)
     return data;
   }
 
@@ -137,8 +145,13 @@ export default class SortableTable {
   }
 
   appendTableData(data) {
-    const tableBody = this.subElements.body;
-    tableBody.innerHTML += this.getTableBody(data);
+    const rows = document.createElement('div'); //div - wrapper вокруг rows
+
+    this.data = [...this.data, ...data];
+    rows.innerHTML = this.getTableBody(data);
+
+    this.subElements.body.append(...rows.childNodes); //отсюда берём тока rows без обёртки
+    //сначала делал this.subElements.body.innerHTML+=this.getTableBody(data), но думаю через append получше
   }
 
   sort(fieldValue, orderValue) {
@@ -157,7 +170,6 @@ export default class SortableTable {
     allColumns.forEach(column => {
       column.dataset.order = '';
     });
-    //console.log(fieldValue)
     currentColumn.dataset.order = orderValue;
 
 
@@ -198,7 +210,8 @@ export default class SortableTable {
   }
 
   update() {
-    this.getProducts(this.start, this.start + this.productsCountStep)
+    const {id, order} = this.sorted;
+    this.getProducts(id, order, this.start, this.start + this.productsCountStep)
       .then((data) => {
         this.data = data;
         this.updateTableBody();
@@ -208,12 +221,13 @@ export default class SortableTable {
 
   addProducts = () => {
     const {bottom} = this.element.getBoundingClientRect();
+    const {id, order} = this.sorted;
 
     if (bottom < document.documentElement.clientHeight && !this.loading) {
 
       this.loading = true;
 
-      this.getProducts(this.start, this.start + this.productsCountStep)
+      this.getProducts(id, order, this.start, this.start + this.productsCountStep)
         .then((data) => {
           this.data = [...this.data, ...data];
           this.appendTableData(data);
@@ -224,16 +238,17 @@ export default class SortableTable {
   }
 
   sortOnClient(id, order) {
-    const sortedData = this.sort(id, order);
+    this.sort(id, order);
     this.updateTableBody(); //перерендерим только тело таблицы
   }
 
   async sortOnServer(id, order) {
-    const url = new URL('/api/rest/products', 'https://course-js.javascript.ru');
-    url.searchParams.set('_embed', 'subcategory.category');
-    url.searchParams.set('_sort', id);
-    url.searchParams.set('_order', order);
-    const data = await fetchJson(url);
-    return data;
+    const start = 0;
+    const end = start + this.productsCountStep;
+    const data = await this.getProducts(id, order, start, end);
+
+    this.data = data;
+    console.log(this.data);
+    this.updateTableBody(); //перерендерим только тело таблицы
   }
 }
