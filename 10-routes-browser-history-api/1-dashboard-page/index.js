@@ -80,7 +80,6 @@ export default class Page {
 
   initEventListeners() {
     this.components.rangePicker.element.addEventListener('date-select', event => {
-      console.log(event.detail);
       const { from, to } = event.detail;
 
       this.updateComponents(from, to);
